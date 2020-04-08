@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans      http://www.springframework.org/schema/beans/spring-beans.xsd
+						 http://www.springframework.org/schema/context   http://www.springframework.org/schema/context/spring-context-3.1.xsd
+                           http://www.springframework.org/schema/tx      http://www.springframework.org/schema/tx/spring-tx-3.1.xsd">
+
+    <!-- 使用annotation 自动注册bean, 并保证@Required、@Autowired的属性被注入 -->
+<!--    <context:component-scan base-package="cn.lastwhisper.**" />-->
+    <context:component-scan base-package="cn.lastwhisper" />
+
+
+    <!-- 读取配置文件信息 -->
+    <context:property-placeholder location="classpath:db.properties" />
+    <!-- 数据源 -->
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="url" value="${jdbc.url}" />
+        <property name="username" value="${jdbc.username}" />
+        <property name="password" value="${jdbc.password}" />
+        <!-- 配置初始化大小、最小、最大 -->
+        <property name="maxActive" value="20" />
+        <property name="initialSize" value="20" />
+        <property name="minIdle" value="20" />
+        <!-- 配置获取连接等待超时的时间 -->
+        <property name="maxWait" value="60000" />
+        <!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+        <property name="timeBetweenEvictionRunsMillis" value="60000" />
+        <!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+        <property name="minEvictableIdleTimeMillis" value="300000" />
+        <property name="testWhileIdle" value="true" />
+        <property name="testOnBorrow" value="false" />
+        <property name="testOnReturn" value="false" />
+        <!-- 打开PSCache，并且指定每个连接上PSCache的大小 -->
+        <property name="poolPreparedStatements" value="true" />
+        <property name="maxOpenPreparedStatements" value="20" />
+        <!-- 配置监控统计拦截的filters,和防sql注入 -->
+        <property name="filters" value="stat,wall" />
+    </bean>
+    <!-- (事务管理)transaction manager, use JtaTransactionManager for global tx -->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource" />
+    </bean>
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+
+    <!-- Activiti引擎配置 -->
+    <bean id="processEngineConfiguration" class="org.activiti.spring.SpringProcessEngineConfiguration">
+        <property name="processEngineName" value="spring"></property>
+        <property name="dataSource" ref="dataSource" />
+        <property name="transactionManager" ref="transactionManager" />
+        <property name="databaseSchemaUpdate" value="true" /><!--检查数据库并创建activity相关表-->
+        <property name="jobExecutorActivate" value="false" />
+<!--        <property name="deploymentResources" value="classpath*:/bpmn/leave.bpmn"></property>-->
+    </bean>
+
+    <!-- Activiti引擎工厂 -->
+    <bean id="processActEngineFactory" class="org.activiti.spring.ProcessEngineFactoryBean">
+        <property name="processEngineConfiguration" ref="processEngineConfiguration" />
+    </bean>
+
+    <!-- Activiti的Service -->
+    <bean id="repositoryService" factory-bean="processActEngineFactory" factory-method="getRepositoryService" />
+    <bean id="runtimeService" factory-bean="processActEngineFactory" factory-method="getRuntimeService" />
+    <bean id="formService" factory-bean="processActEngineFactory" factory-method="getFormService" />
+    <bean id="identityService" factory-bean="processActEngineFactory" factory-method="getIdentityService" />
+    <bean id="taskService" factory-bean="processActEngineFactory" factory-method="getTaskService" />
+    <bean id="historyService" factory-bean="processActEngineFactory" factory-method="getHistoryService" />
+    <bean id="managementService" factory-bean="processActEngineFactory" factory-method="getManagementService" />
+
+</beans>
